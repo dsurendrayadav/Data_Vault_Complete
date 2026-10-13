@@ -1,0 +1,205 @@
+version: "3.9"
+
+services:
+  # =========================================================================
+  # 1. Monitored 3-Node PostgreSQL Replication Cluster (Workload DB: appdb)
+  # =========================================================================
+  pg-primary:
+    image: postgres:16
+    container_name: pg-primary
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: appdb
+    volumes:
+      - ./postgres/primary/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./postgres/primary/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./postgres/primary/init.sh:/docker-entrypoint-initdb.d/init.sh
+      - pg_primary_data:/var/lib/postgresql/data
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - datavault-net
+
+  pg-replica1:
+    image: postgres:16
+    container_name: pg-replica1
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - ./postgres/replica/replica-entrypoint.sh:/replica-entrypoint.sh
+      - pg_replica1_data:/var/lib/postgresql/data
+    entrypoint: ["/bin/bash", "/replica-entrypoint.sh"]
+    depends_on:
+      pg-primary:
+        condition: service_healthy
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - datavault-net
+
+  pg-replica2:
+    image: postgres:16
+    container_name: pg-replica2
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - ./postgres/replica/replica-entrypoint.sh:/replica-entrypoint.sh
+      - pg_replica2_data:/var/lib/postgresql/data
+    entrypoint: ["/bin/bash", "/replica-entrypoint.sh"]
+    depends_on:
+      pg-primary:
+        condition: service_healthy
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - datavault-net
+
+  # =========================================================================
+  # 2. Monitored 3-Shard MongoDB Cluster
+  # =========================================================================
+  mongo-cfg:
+    image: mongo:7
+    container_name: mongo-cfg
+    command: mongod --configsvr --replSet cfgrs --port 27019 --bind_ip_all
+    volumes:
+      - mongo_cfg_data:/data/db
+    networks:
+      - datavault-net
+
+  mongo-shard1:
+    image: mongo:7
+    container_name: mongo-shard1
+    command: mongod --shardsvr --replSet shard1rs --port 27018 --bind_ip_all
+    volumes:
+      - mongo_shard1_data:/data/db
+    networks:
+      - datavault-net
+
+  mongo-shard2:
+    image: mongo:7
+    container_name: mongo-shard2
+    command: mongod --shardsvr --replSet shard2rs --port 27018 --bind_ip_all
+    volumes:
+      - mongo_shard2_data:/data/db
+    networks:
+      - datavault-net
+
+  mongo-shard3:
+    image: mongo:7
+    container_name: mongo-shard3
+    command: mongod --shardsvr --replSet shard3rs --port 27018 --bind_ip_all
+    volumes:
+      - mongo_shard3_data:/data/db
+    networks:
+      - datavault-net
+
+  mongo-router:
+    image: mongo:7
+    container_name: mongo-router
+    depends_on:
+      - mongo-cfg
+      - mongo-shard1
+      - mongo-shard2
+      - mongo-shard3
+    command: mongos --configdb cfgrs/mongo-cfg:27019 --port 27017 --bind_ip_all
+    ports:
+      - "27017:27017"
+    networks:
+      - datavault-net
+
+  # =========================================================================
+  # 3. Dedicated Separate PostgreSQL Database for DataVault Application Data
+  # =========================================================================
+  datavault-db:
+    image: postgres:16
+    container_name: datavault-db
+    environment:
+      POSTGRES_USER: datavault_user
+      POSTGRES_PASSWORD: datavault_pass
+      POSTGRES_DB: datavault_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./postgres/app/init_datavault_db.sql:/docker-entrypoint-initdb.d/init.sql
+      - datavault_app_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datavault_user -d datavault_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - datavault-net
+
+  # =========================================================================
+  # 4. DataVault Operations Dashboard Server (FastAPI + Streamlit Ready)
+  # =========================================================================
+  datavault-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: datavault-app
+    environment:
+      - PG_HOST=pg-primary
+      - PG_PORT=5432
+      - PG_USER=admin
+      - PG_PASSWORD=admin
+      - PG_DB=appdb
+      - PG_REPLICA1_HOST=pg-replica1
+      - PG_REPLICA1_PORT=5432
+      - PG_REPLICA2_HOST=pg-replica2
+      - PG_REPLICA2_PORT=5432
+      - MONGO_URI=mongodb://mongo-router:27017
+      - MONGO_DB=datavault
+      - MONGO_COLLECTION=events
+      - DATAVAULT_PG_HOST=datavault-db
+      - DATAVAULT_PG_PORT=5432
+      - DATAVAULT_PG_USER=datavault_user
+      - DATAVAULT_PG_PASSWORD=datavault_pass
+      - DATAVAULT_PG_DB=datavault_db
+      - USE_POSTGRES_STORAGE=true
+      - PORT=8000
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    depends_on:
+      pg-primary:
+        condition: service_healthy
+      datavault-db:
+        condition: service_healthy
+      mongo-router:
+        condition: service_started
+    networks:
+      - datavault-net
+
+networks:
+  datavault-net:
+    driver: bridge
+
+volumes:
+  pg_primary_data:
+  pg_replica1_data:
+  pg_replica2_data:
+  mongo_cfg_data:
+  mongo_shard1_data:
+  mongo_shard2_data:
+  mongo_shard3_data:
+  datavault_app_data:

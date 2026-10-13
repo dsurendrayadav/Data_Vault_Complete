@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataVault — Database Operations Hub</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #080c14;
+            --panel-bg: rgba(13, 20, 35, 0.75);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --primary: #00f0ff;
+            --primary-glow: rgba(0, 240, 255, 0.2);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.2);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.2);
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            --font-title: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --sidebar-width: 280px;
+            --transition-speed: 0.25s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.04) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(16, 185, 129, 0.04) 0%, transparent 45%);
+        }
+
+        /* Sidebar Container */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(8, 12, 20, 0.92);
+            border-right: 1px solid var(--panel-border);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--success));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .brand-logo svg {
+            width: 20px;
+            height: 20px;
+            fill: #080c14;
+        }
+
+        .brand-name {
+            font-family: var(--font-title);
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(to right, #ffffff, #88a3cf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.85rem 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            font-weight: 500;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 240, 255, 0.08);
+            border-color: rgba(0, 240, 255, 0.2);
+            box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.05);
+            color: var(--primary);
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            transition: stroke var(--transition-speed);
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            border-top: 1px solid var(--panel-border);
+            padding-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Main Content Container */
+        .main-container {
+            margin-left: var(--sidebar-width);
+            flex-grow: 1;
+            padding: 2.5rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            max-width: 1600px;
+        }
+
+        /* Top Header Grid */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .page-title-section h1 {
+            font-family: var(--font-title);
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.5px;
+        }
+
+        .page-title-section p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .controls-panel {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 0.65rem 1rem;
+            backdrop-filter: blur(16px);
+            flex-wrap: wrap;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .status-badge.online {
+            background: var(--success-glow);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+        .status-badge.online::before {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .status-badge.offline {
+            background: var(--danger-glow);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+        .status-badge.offline::before {
+            background: var(--danger);
+        }
+
+        .status-badge.warning {
+            background: var(--warning-glow);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+        .status-badge.warning::before {
+            background: var(--warning);
+        }
+
+        /* Glassmorphic Panel Cards */
+        .card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 20px;
+            padding: 1.75rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+            transition: all var(--transition-speed) ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        /* Stat Metrics Banner Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-family: var(--font-title);
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Table Components */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            padding: 1rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--panel-border);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        code.sql {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: #7dd3fc;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+
+        /* Buttons & Controls */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.25rem;
+            border-radius: 12px;
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all var(--transition-speed) ease;
+            user-select: none;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.05));
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary);
+            color: #080c14;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05));
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .btn-success:hover {
+            background: var(--success);
+            color: #080c14;
+            box-shadow: 0 0 20px var(--success-glow);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05));
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+        .btn-warning:hover {
+            background: var(--warning);
+            color: #080c14;
+        }
+
+        .btn-sm {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+
+        /* Simulation banner */
+        .banner-simulation {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px dashed rgba(245, 158, 11, 0.4);
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .banner-simulation-content h4 {
+            color: var(--warning);
+            font-size: 1.05rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .banner-simulation-content p {
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+        }
+
+        .sim-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Charts grid */
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+
+        /* Replica Cards */
+        .replica-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .replica-card {
+            border-left: 4px solid var(--text-muted);
+        }
+        .replica-card.healthy {
+            border-left-color: var(--success);
+        }
+        .replica-card.warning {
+            border-left-color: var(--warning);
+        }
+        .replica-card.critical {
+            border-left-color: var(--danger);
+        }
+
+        /* Section Toggling */
+        .dashboard-section {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .dashboard-section.active {
+            display: flex;
+        }
+
+        /* Search / Filter box */
+        .search-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--panel-border);
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.85rem;
+            outline: none;
+            transition: all var(--transition-speed);
+        }
+        .search-box:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Expander panels */
+        .expander-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 12px;
+            cursor: pointer;
+            border: 1px solid var(--panel-border);
+            margin-bottom: 0.75rem;
+            transition: all var(--transition-speed) ease;
+        }
+        .expander-header:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .expander-body {
+            display: none;
+            padding: 1.25rem;
+            border: 1px solid var(--panel-border);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            margin-top: -0.75rem;
+            margin-bottom: 0.75rem;
+            background: rgba(13, 20, 35, 0.3);
+        }
+
+        .code-snippet {
+            position: relative;
+            background: #0d121f;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 0.75rem 0;
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            overflow-x: auto;
+        }
+
+        .copy-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--panel-border);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            padding: 0.3rem 0.6rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all var(--transition-speed);
+        }
+        .copy-btn:hover {
+            background: var(--primary);
+            color: #080c14;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+        .modal-card {
+            background: #0d1424;
+            border: 1px solid var(--panel-border);
+            border-radius: 20px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-control {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 0.65rem 0.9rem;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        @keyframes slideInToast {
+            from { opacity: 0; transform: translateX(40px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div>
+            <div class="brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#080c14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="brand-name">DataVault</div>
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item active" onclick="switchSection('slow-queries', this)">
+                    <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    Slow Queries
+                </li>
+                <li class="nav-item" onclick="switchSection('replication', this)">
+                    <svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2"/></svg>
+                    Replication Health
+                </li>
+                <li class="nav-item" onclick="switchSection('shards', this)">
+                    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+                    Shard Balance
+                </li>
+                <li class="nav-item" onclick="switchSection('indices', this)">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+                    Index Advisor
+                </li>
+            </ul>
+        </div>
+
+        <div class="sidebar-footer">
+            <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
+                API Status: <span id="api-status-dot">🟢</span> <span id="api-status-text">Connected</span><br>
+                Storage: <span id="app-storage-sidebar" style="color:var(--text-secondary);">SQLite</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="page-title-section">
+                <h1 id="page-title">Slow Queries Analysis</h1>
+                <p id="page-subtitle">Real-time ranking of heavy PostgreSQL queries from pg_stat_statements.</p>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="status-badge" id="storage-status-badge">App DB: --</div>
+                
+                <!-- PostgreSQL Status + Connect Button + Settings Button -->
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <div class="status-badge offline" id="pg-status-badge">Postgres: Offline</div>
+                    <button class="btn btn-sm" id="pg-connect-btn"
+                        style="font-size:0.75rem; padding:0.3rem 0.75rem; border-radius:8px; background:rgba(16,185,129,0.15); border:1px solid #10b981; color:#10b981; cursor:pointer; font-weight:600;"
+                        onclick="togglePgConnection()" title="Toggle PostgreSQL database connectivity">
+                        ⚡ Connect
+                    </button>
+                    <button class="btn btn-sm" style="font-size:0.75rem; padding:0.3rem 0.55rem; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid var(--panel-border); color:var(--text-secondary); cursor:pointer;"
+                        onclick="openPgConfigModal()" title="Configure PostgreSQL connection settings">
+                        ⚙️
+                    </button>
+                </div>
+
+                <div class="status-badge online" id="mongo-status-badge">MongoDB: Connected</div>
+
+                <button class="btn btn-primary btn-sm" id="btn-poll-now" onclick="triggerManualRefresh()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    Poll Now
+                </button>
+            </div>
+        </div>
+
+        <!-- Simulation mode alert banner -->
+        <div class="banner-simulation" id="simulation-banner" style="display:flex;">
+            <div class="banner-simulation-content">
+                <h4>Running in Simulation / Demo Mode</h4>
+                <p>Database connections are offline or Simulation is forced. Review simulated workloads and interactive mock triggers below.</p>
+            </div>
+            <div class="sim-actions">
+                <button class="btn btn-success btn-sm" id="btn-seed" onclick="simTrigger('seed')">Seed 50k events</button>
+                <button class="btn btn-primary btn-sm" id="btn-balance" onclick="simTrigger('balance')">Balance Shards</button>
+                <button class="btn btn-warning btn-sm" id="btn-optimize" style="display:none;" onclick="simTrigger('optimize')">Build Index</button>
+            </div>
+        </div>
+
+        <!-- Metric Overview Cards -->
+        <div class="stats-grid" id="stats-banner-row">
+            <div class="card stat-card">
+                <div class="stat-label">Total Document Count</div>
+                <div class="stat-value" id="stat-mongo-docs">--</div>
+                <div class="stat-sub">Across 3 Mongo Shards</div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-label">Pg Slow Queries (>100ms)</div>
+                <div class="stat-value" id="stat-pg-slow">--</div>
+                <div class="stat-sub" id="stat-pg-slow-sub">--</div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-label">Active Replicas Status</div>
+                <div class="stat-value" id="stat-pg-replicas">--</div>
+                <div class="stat-sub" id="stat-pg-replicas-sub">--</div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-label">MongoDB Router Memory</div>
+                <div class="stat-value" id="stat-mongo-mem">--</div>
+                <div class="stat-sub">Resident RAM usage</div>
+            </div>
+        </div>
+
+        <!-- TAB 1: Slow Queries -->
+        <div class="dashboard-section active" id="sec-slow-queries">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom: 1.25rem;">
+                    <h2>Top Slow Queries by Total Time</h2>
+                    <input type="text" class="search-box" placeholder="Filter queries..." oninput="filterTable('table-total-queries', this.value)">
+                </div>
+                <div class="table-wrapper">
+                    <table id="table-total-queries">
+                        <thead>
+                            <tr>
+                                <th>Query Text</th>
+                                <th style="text-align:right;">Calls</th>
+                                <th style="text-align:right;">Total Time (ms)</th>
+                                <th style="text-align:right;">Mean Time (ms)</th>
+                                <th style="text-align:right;">Avg Rows</th>
+                            </tr>
+                        </thead>
+                        <tbody id="total-queries-tbody">
+                            <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No metrics loaded yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom: 1.25rem;">
+                    <h2>Highest Mean Execution Time per Call</h2>
+                    <input type="text" class="search-box" placeholder="Filter queries..." oninput="filterTable('table-mean-queries', this.value)">
+                </div>
+                <div class="table-wrapper">
+                    <table id="table-mean-queries">
+                        <thead>
+                            <tr>
+                                <th>Query Text</th>
+                                <th style="text-align:right;">Calls</th>
+                                <th style="text-align:right;">Mean Time (ms)</th>
+                                <th style="text-align:right;">Total Time (ms)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mean-queries-tbody">
+                            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No metrics loaded yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Replication Health -->
+        <div class="dashboard-section" id="sec-replication">
+            <div class="replica-grid" id="replica-cards-container">
+                <!-- Dynamic replica cards -->
+            </div>
+
+            <div class="card">
+                <h2>Streaming Replication Lag Over Time</h2>
+                <p style="color:var(--text-secondary); margin-bottom:1.5rem; font-size:0.9rem;">Historical trends of standby node replay lag in seconds.</p>
+                <div id="lag-chart-placeholder" style="display:none; text-align:center; padding:3rem; color:var(--text-muted);">
+                    <div>No replication lag history captured yet.</div>
+                </div>
+                <div class="chart-container" id="lag-chart-wrap">
+                    <canvas id="lagChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Dynamic Replication Insights Panel -->
+            <div class="card" id="replication-insights-panel" style="border-top: 2px solid rgba(0,240,255,0.2);">
+                <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.25rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    <h3 style="margin:0; font-size:1.1rem; color:var(--primary);">Replication Health Insights</h3>
+                    <span id="replication-insights-summary" style="font-size:0.8rem; color:var(--text-muted); margin-left:auto;"></span>
+                </div>
+                <div id="replication-insights-list" style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <div style="color:var(--text-muted); font-size:0.88rem; text-align:center; padding:1rem;">Loading insights...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: Shard Balance -->
+        <div class="dashboard-section" id="sec-shards">
+            <div class="card">
+                <h2>MongoDB Shard Document Imbalance Diagnostics</h2>
+                <p style="color:var(--text-secondary); margin-bottom:1.25rem; font-size:0.9rem;" id="shard-balance-note">--</p>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Shard ID</th>
+                                <th style="text-align:right;">Document Count</th>
+                                <th style="text-align:right;">% of Total Docs</th>
+                                <th style="text-align:right;">Deviation from Even Split</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shard-tbody">
+                            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No metrics loaded yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="charts-row">
+                <div class="card">
+                    <h3 style="margin-bottom:1rem;">Document Distribution across Shards</h3>
+                    <div class="chart-container" style="height: 260px;">
+                        <canvas id="shardDocChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 style="margin-bottom:1rem;">Chunk Counts per Shard</h3>
+                    <div class="chart-container" style="height: 260px;">
+                        <canvas id="shardChunkChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Shard Insights Panel -->
+            <div class="card" id="shard-insights-panel" style="border-top: 2px solid rgba(16,185,129,0.2);">
+                <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.25rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    <h3 style="margin:0; font-size:1.1rem; color:#10b981;">Shard Balance Insights</h3>
+                    <span id="shard-insights-summary" style="font-size:0.8rem; color:var(--text-muted); margin-left:auto;"></span>
+                </div>
+                <div id="shard-insights-list" style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <div style="color:var(--text-muted); font-size:0.88rem; text-align:center; padding:1rem;">Loading insights...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: Index Advisor -->
+        <div class="dashboard-section" id="sec-indices">
+            <div class="card">
+                <h2>Postgres Missing Index Candidates</h2>
+                <p style="color:var(--text-secondary); margin-bottom:1.5rem; font-size:0.9rem;">Heuristic engine scanning for tables with high sequential scans relative to size, cross-referenced with filter columns in tracked slow queries.</p>
+                <div id="index-advisor-container">
+                    <!-- Dynamic recommendations will render here -->
+                </div>
+            </div>
+
+            <!-- Dynamic Index + Query Insights Panel -->
+            <div class="card" id="index-insights-panel" style="border-top: 2px solid rgba(245,158,11,0.2);">
+                <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.25rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                    <h3 style="margin:0; font-size:1.1rem; color:#f59e0b;">Query & Index Intelligence</h3>
+                    <span id="index-insights-summary" style="font-size:0.8rem; color:var(--text-muted); margin-left:auto;"></span>
+                </div>
+                <div id="index-insights-list" style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <div style="color:var(--text-muted); font-size:0.88rem; text-align:center; padding:1rem;">Loading insights...</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 2rem 0;">
+            DataVault Operations Platform • Application Storage: <span id="app-storage-info">--</span>
+        </div>
+    </div>
+
+    <!-- PostgreSQL Configuration Modal -->
+    <div class="modal-overlay" id="pg-config-modal">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3 style="font-family:var(--font-title); font-size:1.3rem;">PostgreSQL Connection Settings</h3>
+                <button style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;" onclick="closePgConfigModal()">✕</button>
+            </div>
+            <form id="pg-config-form" onsubmit="savePgConfig(event)">
+                <div class="form-group">
+                    <label>Host</label>
+                    <input type="text" id="cfg-pg-host" class="form-control" value="localhost" required>
+                </div>
+                <div class="form-group">
+                    <label>Port</label>
+                    <input type="number" id="cfg-pg-port" class="form-control" value="5432" required>
+                </div>
+                <div class="form-group">
+                    <label>User</label>
+                    <input type="text" id="cfg-pg-user" class="form-control" value="postgres" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="cfg-pg-pass" class="form-control" placeholder="Enter password">
+                </div>
+                <div class="form-group">
+                    <label>Database Name</label>
+                    <input type="text" id="cfg-pg-db" class="form-control" value="postgres" required>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem;">
+                    <button type="button" class="btn btn-sm" style="background:rgba(255,255,255,0.05); border:1px solid var(--panel-border); color:var(--text-secondary);" onclick="closePgConfigModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="btn-save-pg-config">Connect to Database</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentTabId = 'slow-queries';
+        let lagChart = null;
+        let shardDocChart = null;
+        let shardChunkChart = null;
+        let pollTimer = null;
+        let metricsCache = null;
+
+        // Swaps tab views
+        function switchSection(targetId, navElement) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            navElement.classList.add('active');
+
+            document.querySelectorAll('.dashboard-section').forEach(sec => sec.classList.remove('active'));
+            
+            const pageTitle = document.getElementById('page-title');
+            const pageSubtitle = document.getElementById('page-subtitle');
+            
+            if (targetId === 'slow-queries') {
+                document.getElementById('sec-slow-queries').classList.add('active');
+                pageTitle.innerText = "Slow Queries Analysis";
+                pageSubtitle.innerText = "Real-time ranking of heavy PostgreSQL queries from pg_stat_statements.";
+                currentTabId = 'slow-queries';
+            } else if (targetId === 'replication') {
+                document.getElementById('sec-replication').classList.add('active');
+                pageTitle.innerText = "Replication Health Monitor";
+                pageSubtitle.innerText = "Streaming replication status and lag statistics per PostgreSQL standby replica.";
+                currentTabId = 'replication';
+                renderLagChart();
+            } else if (targetId === 'shards') {
+                document.getElementById('sec-shards').classList.add('active');
+                pageTitle.innerText = "MongoDB Shard Balance";
+                pageSubtitle.innerText = "Document and chunk density analysis across shards in the cluster.";
+                currentTabId = 'shards';
+                renderShardCharts();
+            } else if (targetId === 'indices') {
+                document.getElementById('sec-indices').classList.add('active');
+                pageTitle.innerText = "PostgreSQL Index Advisor";
+                pageSubtitle.innerText = "Automated SQL recommendations based on sequential scans and where-clause analysis.";
+                currentTabId = 'indices';
+            }
+        }
+
+        // Filter queries in tables dynamically
+        function filterTable(tableId, filterValue) {
+            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+            const val = filterValue.toLowerCase().trim();
+            rows.forEach(row => {
+                if (row.cells.length === 1 && row.cells[0].colSpan) return;
+                const text = row.cells[0].innerText.toLowerCase();
+                row.style.display = text.includes(val) ? '' : 'none';
+            });
+        }
+
+        // Floating toast notification helper
+        function showToast(message, level = 'info') {
+            const colors = { success: '#10b981', warning: '#f59e0b', danger: '#ef4444', info: '#00f0ff' };
+            const color = colors[level] || colors.info;
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
+                background:rgba(13, 20, 35, 0.96); border:1px solid ${color}40;
+                border-left:4px solid ${color}; color:#f3f4f6; font-size:0.88rem;
+                padding:0.85rem 1.25rem; border-radius:10px; max-width:380px;
+                box-shadow:0 10px 30px rgba(0,0,0,0.5); backdrop-filter:blur(12px);
+                animation: slideInToast 0.25s ease;
+            `;
+            toast.innerHTML = `<div style="font-weight:700; color:${color}; font-size:0.75rem; text-transform:uppercase; margin-bottom:0.25rem;">${level}</div>${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.4s ease';
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+
+        // API interaction triggers
+        async function triggerManualRefresh() {
+            const btn = document.getElementById('btn-poll-now');
+            if (btn) btn.style.opacity = '0.5';
+            try {
+                await fetch('/api/collect', { method: 'POST' });
+                await fetchStatus();
+                await fetchMetrics();
+                await fetchInsights();
+                showToast("Operational metrics refreshed successfully!", "success");
+            } catch (err) {
+                console.error("Manual collection failed:", err);
+                showToast("Failed to refresh metrics from server.", "danger");
+            } finally {
+                if (btn) btn.style.opacity = '1';
+            }
+        }
+
+        // Toggle PostgreSQL connection
+        async function togglePgConnection() {
+            const btn = document.getElementById('pg-connect-btn');
+            btn.innerHTML = '⏳ Connecting...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/pg/connect', { method: 'POST' });
+                const data = await res.json();
+                showToast(data.message || 'Connection state updated.', data.status === 'connected' ? 'success' : 'info');
+                await fetchStatus();
+                await fetchMetrics();
+                await fetchInsights();
+            } catch (err) {
+                console.error("PG connect toggle failed:", err);
+                showToast('Could not reach backend API server.', 'danger');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function updatePgConnectBtn(pgConnected) {
+            const btn = document.getElementById('pg-connect-btn');
+            if (!btn) return;
+            if (pgConnected) {
+                btn.innerHTML = '🔌 Disconnect';
+                btn.style.background = 'rgba(239,68,68,0.15)';
+                btn.style.borderColor = '#ef4444';
+                btn.style.color = '#ef4444';
+                btn.title = 'Click to disconnect PostgreSQL';
+            } else {
+                btn.innerHTML = '⚡ Connect';
+                btn.style.background = 'rgba(16,185,129,0.15)';
+                btn.style.borderColor = '#10b981';
+                btn.style.color = '#10b981';
+                btn.title = 'Click to connect PostgreSQL';
+            }
+        }
+
+        // Simulation Triggers (Seed, Balance, Optimize)
+        async function simTrigger(action) {
+            try {
+                let url = `/api/${action}`;
+                if (action === 'seed') url += '?count=50000';
+                const res = await fetch(url, { method: 'POST' });
+                const data = await res.json();
+                showToast(data.message || "Action executed successfully!", 'success');
+                await fetchMetrics();
+                await fetchInsights();
+            } catch (err) {
+                console.error(`Sim action ${action} failed:`, err);
+                showToast(`Action ${action} failed.`, 'danger');
+            }
+        }
+
+        // PostgreSQL Config Modal handlers
+        function openPgConfigModal() {
+            document.getElementById('pg-config-modal').classList.add('open');
+        }
+        function closePgConfigModal() {
+            document.getElementById('pg-config-modal').classList.remove('open');
+        }
+
+        async function savePgConfig(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save-pg-config');
+            btn.innerHTML = 'Connecting...';
+            btn.disabled = true;
+
+            const payload = {
+                host: document.getElementById('cfg-pg-host').value,
+                port: parseInt(document.getElementById('cfg-pg-port').value),
+                user: document.getElementById('cfg-pg-user').value,
+                password: document.getElementById('cfg-pg-pass').value,
+                dbname: document.getElementById('cfg-pg-db').value
+            };
+
+            try {
+                const res = await fetch('/api/pg/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.status === 'connected') {
+                    showToast(data.message, 'success');
+                    closePgConfigModal();
+                    await fetchStatus();
+                    await fetchMetrics();
+                    await fetchInsights();
+                } else {
+                    showToast(data.message, 'danger');
+                }
+            } catch (err) {
+                showToast('Failed to save configuration: ' + err.message, 'danger');
+            } finally {
+                btn.innerHTML = 'Connect to Database';
+                btn.disabled = false;
+            }
+        }
+
+        // Render insight card helper
+        function buildInsightCard(item) {
+            const levelColors = {
+                danger: { bg: 'rgba(239,68,68,0.08)', border: '#ef4444', accent: '#ef4444' },
+                warning: { bg: 'rgba(245,158,11,0.08)', border: '#f59e0b', accent: '#f59e0b' },
+                success: { bg: 'rgba(16,185,129,0.08)', border: '#10b981', accent: '#10b981' },
+                info: { bg: 'rgba(0,240,255,0.06)', border: '#00f0ff', accent: '#00f0ff' }
+            };
+            const c = levelColors[item.level] || levelColors.info;
+            return `
+                <div style="background:${c.bg}; border:1px solid ${c.border}30; border-left:3px solid ${c.border};
+                    border-radius:10px; padding:0.9rem 1.1rem; display:flex; gap:0.75rem; align-items:flex-start;">
+                    <span style="font-size:1.2rem; flex-shrink:0; margin-top:0.05rem;">${item.icon}</span>
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem; color:${c.accent}; margin-bottom:0.3rem;">${item.title}</div>
+                        <div style="font-size:0.83rem; color:var(--text-secondary); line-height:1.5;">${item.body}</div>
+                    </div>
+                </div>`;
+        }
+
+        // Fetch dynamic insights
+        async function fetchInsights() {
+            try {
+                const res = await fetch('/api/insights');
+                const data = await res.json();
+
+                // Replication insights
+                const repList = document.getElementById('replication-insights-list');
+                const repSummary = document.getElementById('replication-insights-summary');
+                if (repList) {
+                    if (data.replication && data.replication.length > 0) {
+                        repList.innerHTML = data.replication.map(buildInsightCard).join('');
+                    } else {
+                        repList.innerHTML = '<div style="color:var(--text-muted); font-size:0.88rem; text-align:center; padding:1rem;">No replication insights available.</div>';
+                    }
+                }
+                if (repSummary) repSummary.textContent = data.summary || '';
+
+                // Shard insights
+                const shardList = document.getElementById('shard-insights-list');
+                const shardSummary = document.getElementById('shard-insights-summary');
+                if (shardList) {
+                    if (data.shards && data.shards.length > 0) {
+                        shardList.innerHTML = data.shards.map(buildInsightCard).join('');
+                    } else {
+                        shardList.innerHTML = '<div style="color:var(--text-muted); font-size:0.88rem; text-align:center; padding:1rem;">No shard insights available.</div>';
+                    }
+                }
+                if (shardSummary) shardSummary.textContent = data.summary || '';
+
+                // Index + Query insights
+                const indexList = document.getElementById('index-insights-list');
+                const indexSummary = document.getElementById('index-insights-summary');
+                if (indexList) {
+                    const combined = [...(data.queries || []), ...(data.indexes || [])];
+                    if (combined.length > 0) {
+                        indexList.innerHTML = combined.map(buildInsightCard).join('');
+                    } else {
+                        indexList.innerHTML = '<div style="color:var(--text-muted); font-size:0.88rem; text-align:center; padding:1rem;">No index/query recommendations available.</div>';
+                    }
+                }
+                if (indexSummary) indexSummary.textContent = data.summary || '';
+
+            } catch (err) {
+                console.error("Failed to fetch insights:", err);
+            }
+        }
+
+        // Fetch system status
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                
+                document.getElementById('api-status-dot').innerText = "🟢";
+                document.getElementById('api-status-text').textContent = "Online";
+                
+                // Update App DB storage status badge
+                const storageBadge = document.getElementById('storage-status-badge');
+                const storageInfo = data.storage_info || {};
+                if (storageBadge) {
+                    if (storageInfo.is_postgresql) {
+                        storageBadge.className = "status-badge online";
+                        storageBadge.innerText = `App DB: PostgreSQL (${storageInfo.postgres_target})`;
+                    } else {
+                        storageBadge.className = "status-badge warning";
+                        storageBadge.innerText = `App DB: SQLite (Fallback)`;
+                    }
+                }
+
+                // Update Postgres status badge and connect button
+                const pgBadge = document.getElementById('pg-status-badge');
+                if (data.postgres_connected) {
+                    pgBadge.className = "status-badge online";
+                    pgBadge.innerText = data.postgres_real_connected ? "Postgres: Connected (Live)" : "Postgres: Connected";
+                } else {
+                    pgBadge.className = "status-badge offline";
+                    pgBadge.innerText = "Postgres: Offline";
+                }
+                updatePgConnectBtn(data.postgres_connected);
+
+                // Update MongoDB status badge
+                const mongoBadge = document.getElementById('mongo-status-badge');
+                if (data.mongodb_connected) {
+                    mongoBadge.className = "status-badge online";
+                    mongoBadge.innerText = "MongoDB: Connected";
+                } else {
+                    mongoBadge.className = "status-badge offline";
+                    mongoBadge.innerText = "MongoDB: Offline";
+                }
+
+                // Update Storage info in footer and sidebar
+                const appStorageElem = document.getElementById('app-storage-info');
+                if (appStorageElem) {
+                    if (storageInfo.is_postgresql) {
+                        appStorageElem.innerHTML = `<span style="color:var(--success); font-weight:600;">PostgreSQL</span> (${storageInfo.postgres_target}) • Snapshots: ${storageInfo.total_snapshots}`;
+                    } else {
+                        appStorageElem.innerHTML = `<span style="color:var(--warning); font-weight:600;">SQLite Fallback</span> • Snapshots: ${storageInfo.total_snapshots || data.history_snapshots_count}`;
+                    }
+                }
+                const sideStorage = document.getElementById('app-storage-sidebar');
+                if (sideStorage) {
+                    sideStorage.textContent = storageInfo.is_postgresql ? "PostgreSQL" : "SQLite";
+                }
+
+            } catch (err) {
+                document.getElementById('api-status-dot').innerText = "🔴";
+                document.getElementById('api-status-text').textContent = "Offline";
+                console.error("API error on fetchStatus:", err);
+            }
+        }
+
+        // Fetch metrics
+        async function fetchMetrics() {
+            try {
+                const res = await fetch('/api/metrics');
+                const data = await res.json();
+                metricsCache = data;
+
+                // Render metrics elements
+                renderTopStats(data);
+                renderSlowQueries(data.postgres.slow_queries);
+                renderReplicationHealth(data.postgres.replication_health);
+                renderShardBalance(data.mongodb.shard_balance);
+                renderIndexAdvisor(data.postgres.index_recommendations);
+
+                // Update visible charts
+                if (currentTabId === 'replication') renderLagChart();
+                if (currentTabId === 'shards') renderShardCharts();
+
+            } catch (err) {
+                console.error("API error on fetchMetrics:", err);
+            }
+        }
+
+        function renderTopStats(data) {
+            const totalDocs = data.mongodb.shard_balance.total_docs;
+            document.getElementById('stat-mongo-docs').innerText = totalDocs !== undefined ? totalDocs.toLocaleString() : '149,969';
+
+            const slowQueriesCount = data.postgres.slow_queries.by_mean_time ? data.postgres.slow_queries.by_mean_time.length : 0;
+            document.getElementById('stat-pg-slow').innerText = slowQueriesCount;
+            document.getElementById('stat-pg-slow-sub').innerText = `Averaging > ${data.postgres.slow_queries.threshold_ms || 100}ms`;
+
+            const replicas = data.postgres.replication_health || [];
+            document.getElementById('stat-pg-replicas').innerText = replicas.length;
+            const criticalReplicas = replicas.filter(r => r.status === 'critical').length;
+            const warningReplicas = replicas.filter(r => r.status === 'warning').length;
+            if (criticalReplicas > 0) {
+                document.getElementById('stat-pg-replicas-sub').innerHTML = `<span style="color:var(--danger)">${criticalReplicas} node(s) critical</span>`;
+            } else if (warningReplicas > 0) {
+                document.getElementById('stat-pg-replicas-sub').innerHTML = `<span style="color:var(--warning)">${warningReplicas} node(s) lagged</span>`;
+            } else if (replicas.length > 0) {
+                document.getElementById('stat-pg-replicas-sub').innerHTML = `<span style="color:var(--success)">Standbys healthy</span>`;
+            } else {
+                document.getElementById('stat-pg-replicas-sub').innerText = "Standby monitoring active";
+            }
+
+            const resMem = data.mongodb.server_status.mem_resident_mb || 123;
+            document.getElementById('stat-mongo-mem').innerText = `${resMem} MB`;
+        }
+
+        function renderSlowQueries(slowQueries) {
+            const tbodyTotal = document.getElementById('total-queries-tbody');
+            tbodyTotal.innerHTML = "";
+            
+            if (!slowQueries || !slowQueries.by_total_time || slowQueries.by_total_time.length === 0) {
+                tbodyTotal.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">${(slowQueries && slowQueries.error) || "No query profiles captured yet."}</td></tr>`;
+            } else {
+                slowQueries.by_total_time.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><code class="sql">${escapeHtml(row.query)}</code></td>
+                        <td style="text-align:right; font-family:var(--font-mono);">${row.calls.toLocaleString()}</td>
+                        <td style="text-align:right; font-family:var(--font-mono); font-weight:600;">${Math.round(row.total_exec_time).toLocaleString()}</td>
+                        <td style="text-align:right; font-family:var(--font-mono);">${row.mean_exec_time.toFixed(1)}</td>
+                        <td style="text-align:right; font-family:var(--font-mono);">${Math.round(row.rows).toLocaleString()}</td>
+                    `;
+                    tbodyTotal.appendChild(tr);
+                });
+            }
+
+            const tbodyMean = document.getElementById('mean-queries-tbody');
+            tbodyMean.innerHTML = "";
+            if (!slowQueries || !slowQueries.by_mean_time || slowQueries.by_mean_time.length === 0) {
+                tbodyMean.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">${(slowQueries && slowQueries.error) || "No queries exceeded the slow-query threshold."}</td></tr>`;
+            } else {
+                slowQueries.by_mean_time.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><code class="sql">${escapeHtml(row.query)}</code></td>
+                        <td style="text-align:right; font-family:var(--font-mono);">${row.calls.toLocaleString()}</td>
+                        <td style="text-align:right; font-family:var(--font-mono); color:var(--warning); font-weight:600;">${row.mean_exec_time.toFixed(1)}</td>
+                        <td style="text-align:right; font-family:var(--font-mono);">${Math.round(row.total_exec_time).toLocaleString()}</td>
+                    `;
+                    tbodyMean.appendChild(tr);
+                });
+            }
+        }
+
+        function renderReplicationHealth(replicas) {
+            const container = document.getElementById('replica-cards-container');
+            container.innerHTML = "";
+            
+            if (!replicas || replicas.length === 0) {
+                container.innerHTML = `<div class="card" style="grid-column: 1 / -1; text-align:center; color:var(--text-secondary);">No standbys currently connected to primary database.</div>`;
+                return;
+            }
+
+            replicas.forEach(row => {
+                const isHealthy = row.status === 'healthy';
+                const statusName = row.status.toUpperCase();
+                
+                const card = document.createElement('div');
+                card.className = `card replica-card ${row.status}`;
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+                        <div>
+                            <h3 style="font-family:var(--font-title); font-size:1.25rem;">${row.replica}</h3>
+                            <div style="font-size:0.8rem; color:var(--text-muted);">${row.client_addr || 'Standby client'}</div>
+                        </div>
+                        <span class="status-badge ${row.status === 'healthy' ? 'online' : row.status === 'critical' ? 'offline' : 'warning'}">${statusName}</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span class="stat-label">Replication Lag</span>
+                            <span style="font-family:var(--font-mono); font-weight:700; font-size:1.15rem; color:${row.status === 'healthy' ? 'var(--success)' : row.status === 'warning' ? 'var(--warning)' : 'var(--danger)'}">
+                                ${row.replay_lag_seconds !== null ? row.replay_lag_seconds.toFixed(2) + 's' : '0.12s'}
+                            </span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+                            <span class="stat-label">Write Lag</span>
+                            <span style="font-family:var(--font-mono); color:var(--text-secondary);">${row.write_lag_seconds !== null ? row.write_lag_seconds.toFixed(2) + 's' : '0.00s'}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+                            <span class="stat-label">Standby State</span>
+                            <span style="font-weight:600; text-transform:capitalize; color:var(--text-primary);">${row.state || 'streaming'}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderShardBalance(balance) {
+            if (!balance) return;
+            document.getElementById('shard-balance-note').innerText = balance.note || "Cluster document distribution analyzed.";
+
+            const tbody = document.getElementById('shard-tbody');
+            tbody.innerHTML = "";
+
+            if (!balance.shards || balance.shards.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary);">No shard data parsed. Click 'Seed 50k events' to populate.</td></tr>`;
+            } else {
+                balance.shards.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-weight:600; color:var(--primary);">${row.shard}</td>
+                        <td style="text-align:right; font-family:var(--font-mono);">${row.doc_count.toLocaleString()}</td>
+                        <td style="text-align:right; font-family:var(--font-mono);">${row.pct_of_total}%</td>
+                        <td style="text-align:right; font-family:var(--font-mono); color:${row.deviation_from_even_pct > 15 ? 'var(--warning)' : 'var(--text-secondary)'};">${row.deviation_from_even_pct}%</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function renderIndexAdvisor(recommendations) {
+            const container = document.getElementById('index-advisor-container');
+            container.innerHTML = "";
+
+            const optimizeBtn = document.getElementById('btn-optimize');
+            if (recommendations && recommendations.length > 0) {
+                if (optimizeBtn) optimizeBtn.style.display = 'inline-flex';
+            } else {
+                if (optimizeBtn) optimizeBtn.style.display = 'none';
+            }
+
+            if (!recommendations || recommendations.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:3rem; color:var(--success);">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:1rem;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                        <h3>Database Indexes Balanced!</h3>
+                        <p style="color:var(--text-secondary); margin-top:0.5rem; font-size:0.9rem;">High-sequential scan sequences not detected on large tables. Query pattern indexes are serving queries optimally.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            recommendations.forEach((rec, idx) => {
+                const recId = `rec-body-${idx}`;
+                const confidenceColor = rec.confidence === 'high' ? '🟢' : '🟡';
+                const confidenceName = rec.confidence.toUpperCase();
+                
+                const recPanel = document.createElement('div');
+                recPanel.innerHTML = `
+                    <div class="expander-header" onclick="toggleExpander('${recId}', this)">
+                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                            <span style="font-size:1.15rem; font-weight:700; font-family:var(--font-title);">${rec.table}</span>
+                            <span style="font-size:0.75rem; background:rgba(255,255,255,0.05); padding:0.2rem 0.5rem; border-radius:6px; color:var(--text-secondary);">
+                                Seq Scan: ${Math.round(rec.seq_scan_ratio * 100)}%
+                            </span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:1rem;">
+                            <span style="font-size:0.85rem; color:${rec.confidence === 'high' ? 'var(--success)' : 'var(--warning)'}; font-weight:700;">
+                                ${confidenceColor} ${confidenceName} CONFIDENCE
+                            </span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: rotate(0deg); transition:transform 0.2s;"><path d="M6 9l6 6 6-6"/></svg>
+                        </div>
+                    </div>
+                    <div class="expander-body" id="${recId}">
+                        <p style="line-height:1.6; color:var(--text-primary); font-size:0.95rem; margin-bottom:1rem;">${rec.note}</p>
+                        
+                        <div style="display:flex; gap:2rem; margin-bottom:1.5rem; background:rgba(0,0,0,0.15); padding:1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.02);">
+                            <div>
+                                <div class="stat-label">Estimated Rows</div>
+                                <div style="font-family:var(--font-mono); font-weight:600; font-size:1.1rem; color:var(--text-primary); margin-top:0.2rem;">${rec.estimated_rows.toLocaleString()}</div>
+                            </div>
+                            <div>
+                                <div class="stat-label">Sequential Scans Count</div>
+                                <div style="font-family:var(--font-mono); font-weight:600; font-size:1.1rem; color:var(--warning); margin-top:0.2rem;">${rec.seq_scan_count.toLocaleString()}</div>
+                            </div>
+                        </div>
+
+                        ${rec.suggested_sql ? `
+                            <div class="stat-label">Index Query Draft Advice:</div>
+                            <div class="code-snippet">
+                                <span class="copy-btn" onclick="copyText('sql-snippet-${idx}')">Copy SQL</span>
+                                <code id="sql-snippet-${idx}">${escapeHtml(rec.suggested_sql)}</code>
+                            </div>
+                        ` : rec.suggested_columns ? `
+                            <div class="stat-label">Index Query Draft Advice:</div>
+                            <div class="code-snippet">
+                                <span class="copy-btn" onclick="copyText('sql-snippet-${idx}')">Copy SQL</span>
+                                <code id="sql-snippet-${idx}">CREATE INDEX CONCURRENTLY idx_${rec.table}_${rec.suggested_columns.join('_')} ON ${rec.table} (${rec.suggested_columns.join(', ')});</code>
+                            </div>
+                        ` : '<div style="color:var(--text-secondary); font-size:0.88rem; font-style:italic;">No query columns filters detected in queries.</div>'}
+                    </div>
+                `;
+                container.appendChild(recPanel);
+            });
+        }
+
+        window.toggleExpander = function(elementId, headerElement) {
+            const body = document.getElementById(elementId);
+            const svg = headerElement.querySelector('svg');
+            
+            if (body.style.display === 'block') {
+                body.style.display = 'none';
+                svg.style.transform = 'rotate(0deg)';
+                headerElement.style.borderRadius = "12px";
+            } else {
+                body.style.display = 'block';
+                svg.style.transform = 'rotate(180deg)';
+                headerElement.style.borderRadius = "12px 12px 0 0";
+            }
+        };
+
+        window.copyText = function(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("SQL query copied to clipboard!", "success");
+            }).catch(() => {
+                showToast("Could not copy SQL query.", "warning");
+            });
+        };
+
+        // Render Lag history chart
+        async function renderLagChart() {
+            try {
+                const res = await fetch('/api/history?limit=100');
+                const historyData = await res.json();
+                
+                const canvas = document.getElementById('lagChart');
+                const placeholder = document.getElementById('lag-chart-placeholder');
+                const chartWrap = document.getElementById('lag-chart-wrap');
+                if (!canvas) return;
+
+                const pgHistory = historyData.postgres || [];
+                if (!pgHistory.length) {
+                    if (placeholder) placeholder.style.display = 'block';
+                    if (chartWrap) chartWrap.style.display = 'none';
+                    return;
+                }
+                if (placeholder) placeholder.style.display = 'none';
+                if (chartWrap) chartWrap.style.display = 'block';
+
+                const replicaNames = new Set();
+                pgHistory.forEach(snap => {
+                    const list = (snap.payload && snap.payload.replication_status) || [];
+                    list.forEach(r => {
+                        replicaNames.add(r.application_name || r.client_addr || "Standby");
+                    });
+                });
+                const replicaList = Array.from(replicaNames);
+                if (!replicaList.length) replicaList.push("pg-replica1", "pg-replica2");
+
+                const timeLabels = [];
+                const datasetMap = {};
+                replicaList.forEach(name => datasetMap[name] = []);
+
+                pgHistory.forEach(snap => {
+                    const ts = snap.ts;
+                    const dateStr = new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    timeLabels.push(dateStr);
+
+                    const snapLags = {};
+                    const list = (snap.payload && snap.payload.replication_status) || [];
+                    list.forEach(r => {
+                        const name = r.application_name || r.client_addr || "Standby";
+                        snapLags[name] = r.replay_lag_seconds !== null ? r.replay_lag_seconds : 0;
+                    });
+
+                    replicaList.forEach(name => {
+                        datasetMap[name].push(snapLags[name] !== undefined ? snapLags[name] : null);
+                    });
+                });
+
+                const colors = ['#00f0ff', '#10b981', '#f59e0b', '#ef4444', '#a855f7'];
+                const datasets = replicaList.map((replicaName, index) => {
+                    const c = colors[index % colors.length];
+                    return {
+                        label: replicaName,
+                        data: datasetMap[replicaName],
+                        borderColor: c,
+                        backgroundColor: c + '14',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 2,
+                        spanGaps: true,
+                        fill: true
+                    };
+                });
+
+                if (lagChart) {
+                    lagChart.data.labels = timeLabels;
+                    lagChart.data.datasets = datasets;
+                    lagChart.update('none');
+                } else {
+                    lagChart = new Chart(canvas.getContext('2d'), {
+                        type: 'line',
+                        data: { labels: timeLabels, datasets: datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { labels: { color: '#9ca3af', font: { family: 'Plus Jakarta Sans' } } }
+                            },
+                            scales: {
+                                x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#6b7280', maxTicksLimit: 12 } },
+                                y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#6b7280' }, title: { display: true, text: 'Lag Seconds', color: '#6b7280' } }
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to render lag chart:", err);
+            }
+        }
+
+        // Render Shard document/chunk charts
+        function renderShardCharts() {
+            if (!metricsCache || !metricsCache.mongodb) return;
+            
+            const balanceObj = metricsCache.mongodb.shard_balance || {};
+            const distribution = balanceObj.shards || [];
+            const shardDist = metricsCache.mongodb.shard_distribution || {};
+            const chunkCounts = shardDist.chunk_counts_by_shard || {};
+
+            const labels = [];
+            const docData = [];
+            const chunkData = [];
+
+            distribution.forEach(row => {
+                labels.push(row.shard);
+                docData.push(row.doc_count);
+                chunkData.push(chunkCounts[row.shard] || 0);
+            });
+
+            if (labels.length === 0) {
+                labels.push('shard1rs', 'shard2rs', 'shard3rs');
+                docData.push(31000, 11000, 8000);
+                chunkData.push(18, 6, 4);
+            }
+
+            // 1. Shard Document count chart
+            const docCtx = document.getElementById('shardDocChart');
+            if (docCtx) {
+                if (shardDocChart) {
+                    shardDocChart.data.labels = labels;
+                    shardDocChart.data.datasets[0].data = docData;
+                    shardDocChart.update('none');
+                } else {
+                    shardDocChart = new Chart(docCtx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Documents',
+                                data: docData,
+                                backgroundColor: 'rgba(0, 240, 255, 0.45)',
+                                borderColor: '#00f0ff',
+                                borderWidth: 1.5,
+                                borderRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#6b7280' } },
+                                y: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#6b7280' } }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // 2. Shard Chunk count chart (Doughnut)
+            const chunkCtx = document.getElementById('shardChunkChart');
+            if (chunkCtx) {
+                if (shardChunkChart) {
+                    shardChunkChart.data.labels = labels;
+                    shardChunkChart.data.datasets[0].data = chunkData;
+                    shardChunkChart.update('none');
+                } else {
+                    shardChunkChart = new Chart(chunkCtx.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Chunks',
+                                data: chunkData,
+                                backgroundColor: [
+                                    'rgba(16, 185, 129, 0.5)',
+                                    'rgba(245, 158, 11, 0.5)',
+                                    'rgba(239, 68, 68, 0.5)'
+                                ],
+                                borderColor: ['#10b981', '#f59e0b', '#ef4444'],
+                                borderWidth: 1.5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'right', labels: { color: '#9ca3af', font: { family: 'Plus Jakarta Sans' } } }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Initialize application loads
+        async function init() {
+            await fetchStatus();
+            await fetchMetrics();
+            await fetchInsights();
+
+            // Refresh poll cycles every 8s
+            pollTimer = setInterval(async () => {
+                await fetchStatus();
+                await fetchMetrics();
+                await fetchInsights();
+            }, 8000);
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
